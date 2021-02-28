@@ -5,10 +5,12 @@ import {
     Conf,
     Logger,
     JwtWrapper,
-    GetMorganMiddleware
+    Misc
 } from '@jamestiberiuskirk/fl-shared';
 
 import { DbClient } from '../clients/db';
+import { TrackingPoints } from './TrackingPointsRouter';
+import { TrackingGroup } from './TrackingGoupsRouter';
 
 /**
  * Class for instantiating HTTP server.
@@ -52,9 +54,11 @@ export class Server {
      * Initializing all the routers and routes.
      */
     initRoutes() {
-        this.app.get('/', (req, res) => {
-            return res.send('Hello world');
-        });
+        this.app.use('/points',  TrackingPoints());
+        this.app.use('/group', TrackingGroup());
+        // this.app.get('/',(req, res)=>{
+        //     res.send('hello')
+        // })
     }
 
     /**
@@ -63,8 +67,7 @@ export class Server {
     initMiddleware() {
         this.disableServerCors();
 
-
-        this.app.use(GetMorganMiddleware());
+        this.app.use(Misc.GetMorganMiddleware());
         this.app.use(bodyParser.json());
 
         // Injecting the database and the logger into each request
@@ -73,7 +76,7 @@ export class Server {
             next();
         });
 
-        // this.app.use(JwtWrapper.authMiddleware);
+        this.app.use(JwtWrapper.authMiddleware);
     }
 
 
