@@ -1,7 +1,7 @@
 import { Request, Response, Router } from 'express';
 import { Logger, Misc } from '@jamestiberiuskirk/fl-shared';
 import { Collections, DbClient } from '../clients/db';
-import { Collection } from 'mongodb';
+import { Collection, ObjectId } from 'mongodb';
 import { Responses } from './Responses';
 import { TrackingGroup } from '../models/TrackingData';
 
@@ -14,6 +14,7 @@ export function TrackingGroup(): Router {
     router.post('/start', StartTrackingGroup);
     router.post('/stop', StopTrackingGroup);
     router.put('/', UpdateTrackingGroups);
+    router.delete('/', DeleteTrackingGroups);
     return router;
 }
 
@@ -32,7 +33,7 @@ export function TrackingGroup(): Router {
 async function GetTrackingGroups(req: Request, res: Response) {
     const db: DbClient = res.locals.db;
     const collection: Collection =
-        db.getCollection(Collections.TrackingPoints);
+        db.getCollection(Collections.TrackingGroups);
     const query: { [k: string]: any } = {};
 
     const roles = res.locals.jwtPayload.roles;
@@ -68,18 +69,14 @@ async function GetTrackingGroups(req: Request, res: Response) {
 async function StartTrackingGroup(req: Request, res: Response) {
     const db: DbClient = res.locals.db;
     const collection: Collection =
-        db.getCollection(Collections.TrackingPoints);
-    const query: { [k: string]: any } = {};
+        db.getCollection(Collections.TrackingGroups);
+    let userId;
+    userId = res.locals.jwtPayload.id;
 
-    const roles = res.locals.jwtPayload.roles;
-    roles[0] === 'microservices' ?
-        query.userId = req.query.userId :
-        query.userId = res.locals.jwtPayload.id;
-
-    // Checks if user already started a group
     try {
+        // Checks if user already started a group
         const queryForExisting = {
-            userId: query.userId,
+            userId,
             endTime: undefined
         }
         const existing = await collection.find(queryForExisting)
@@ -96,7 +93,7 @@ async function StartTrackingGroup(req: Request, res: Response) {
     }
 
     const newTrackingGroup: TrackingGroup = {
-        userId: res.locals.jwtPayload.id,
+        userId,
         startTime: Misc.GenTimeStamp(),
         endTime: undefined,
         notes: req.body.notes,
@@ -122,16 +119,12 @@ async function StartTrackingGroup(req: Request, res: Response) {
 async function StopTrackingGroup(req: Request, res: Response) {
     const db: DbClient = res.locals.db;
     const collection: Collection =
-        db.getCollection(Collections.TrackingPoints);
+        db.getCollection(Collections.TrackingGroups);
     const query: { [k: string]: any } = {};
+    query.userId = res.locals.jwtPayload.id;
 
     const update: { [k: string]: any } = {};
     update.endTime = Misc.GenTimeStamp();
-
-    const roles = res.locals.jwtPayload.roles;
-    roles[0] === 'microservices' ?
-        query.userId = req.query.userId :
-        query.userId = res.locals.jwtPayload.id;
 
     if (req.query.tgId) {
         query._id = req.query.tgId;
@@ -157,25 +150,27 @@ async function StopTrackingGroup(req: Request, res: Response) {
 async function UpdateTrackingGroups(req: Request, res: Response) {
     const db: DbClient = res.locals.db;
     const collection: Collection =
-        db.getCollection(Collections.TrackingPoints);
+        db.getCollection(Collections.TrackingGroups);
     const query: { [k: string]: any } = {};
     const update: { [k: string]: any } = {};
+    query.userId = new ObjectId(res.locals.jwtPayload.id);
 
-    const roles = res.locals.jwtPayload.roles;
-    roles[0] === 'microservices' ?
-        query.userId = req.query.userId :
-        query.userId = res.locals.jwtPayload.id;
-
-    if (req.query.tpId) {
-        query._id = req.query.tpId;
+    if (req.body.tg_id) {
+        query._id = req.body.tg_id;
     } else {
         return res.status(400).send(Responses.MissingTgId);
     }
-    if (req.query.startTime) update.startTime = req.query.startTime;
-    if (req.query.notes) update.notes = req.query.notes;
+
+    if (req.body.startTime) update.startTime = req.body.startTime;
+    if (req.body.notes) update.notes = req.body.notes;
+
+    if (update === {}) return res
+        .status(400)
+        .send(Responses.NothingToUpdate)
 
     try {
-        await collection.findOneAndUpdate(query, update);
+        await collection.findOneAndUpdate(query, {$set:update});
+        return res.send(Responses.Updated);
     } catch (err) {
         Logger.dbErr(err.message);
         return res.status(500).send(Responses.DatabaseErr);
@@ -185,7 +180,7 @@ async function UpdateTrackingGroups(req: Request, res: Response) {
 /**
  * DELETE controller for "/group/"
  * Body:
- *  - tpIds[] : array of tpIds
+ *  - tgIds[] : array of tgIds
  *
  * @param req Express Request object.
  * @param res Express Response object.
@@ -193,7 +188,7 @@ async function UpdateTrackingGroups(req: Request, res: Response) {
 async function DeleteTrackingGroups(req: Request, res: Response) {
     const db: DbClient = res.locals.db;
     const collection: Collection =
-        db.getCollection(Collections.TrackingPoints);
+        db.getCollection(Collections.TrackingGroups);
     const query: { [k: string]: any } = {};
 
     const roles = res.locals.jwtPayload.roles;
@@ -201,8 +196,13 @@ async function DeleteTrackingGroups(req: Request, res: Response) {
         query.userId = req.query.userId :
         query.userId = res.locals.jwtPayload.id;
 
-    if (req.body.tpIds) {
-        query._id = {$in: req.body.tpIds};
+
+    /**
+     * TODO: remove all tracking points associated to this tg.
+     */
+
+    if (req.body.tgIds) {
+        query._id = { $in: req.body.tgIds };
     } else {
         return res.status(400).send(Responses.MissingTgId);
     }

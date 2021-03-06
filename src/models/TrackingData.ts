@@ -1,12 +1,12 @@
 export interface SingleValue {
     value: string;
-    valueType: string;
+    // valueType: string;
 }
 
-export interface Set {
+export interface TpSet {
     reps: string;
     value: string;
-    valueType: string;
+    // valueType: string;
     isDropset: boolean;
     setNr: number;
 }
@@ -16,7 +16,7 @@ export interface TrackingPoint {
     tpTypeId: string;
     tgId: string;
     notes: string;
-    data: Set[] | SingleValue;
+    data: TpSet[] | SingleValue;
     tpNr: number;
 }
 

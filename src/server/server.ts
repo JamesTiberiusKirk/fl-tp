@@ -5,7 +5,8 @@ import {
     Conf,
     Logger,
     JwtWrapper,
-    Misc
+    Misc,
+    FlApi
 } from '@jamestiberiuskirk/fl-shared';
 
 import { DbClient } from '../clients/db';
@@ -26,14 +27,18 @@ export class Server {
     /* The db client */
     db: DbClient;
 
+    /* The internal fl api client. */
+    flApi: FlApi
+
     /**
      * Constructor.
      * @param conf Server config.
      */
-    constructor(conf: Conf.ServerConfig, db: DbClient) {
+    constructor(conf: Conf.ServerConfig, db: DbClient, flApi: FlApi) {
         this.conf = conf;
         this.app = express();
         this.db = db;
+        this.flApi = flApi;
         this.initMiddleware();
         this.initRoutes();
     }
@@ -54,7 +59,7 @@ export class Server {
      * Initializing all the routers and routes.
      */
     initRoutes() {
-        this.app.use('/points',  TrackingPoints());
+        this.app.use('/point',  TrackingPoints());
         this.app.use('/group', TrackingGroup());
         // this.app.get('/',(req, res)=>{
         //     res.send('hello')
@@ -73,6 +78,7 @@ export class Server {
         // Injecting the database and the logger into each request
         this.app.use((req: Request, res: Response, next: NextFunction) => {
             res.locals.db = this.db;
+            res.locals.flApi = this.flApi;
             next();
         });
 
