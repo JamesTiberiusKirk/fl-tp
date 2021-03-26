@@ -213,8 +213,6 @@ async function DeleteTrackingGroups(req: Request, res: Response) {
 
     try {
 
-        console.log(query);
-
         // Delete group from db
         // await collection.deleteOne(query);
         await collection.findOneAndDelete(query);
