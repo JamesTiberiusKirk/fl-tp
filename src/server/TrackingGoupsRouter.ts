@@ -1,14 +1,14 @@
 import { Request, Response, Router } from 'express';
-import { Logger, Misc } from '@jamestiberiuskirk/fl-shared';
+import { Logger, Misc, FlApi } from '@jamestiberiuskirk/fl-shared';
 import { Collections, DbClient } from '../clients/db';
 import { Collection, ObjectId } from 'mongodb';
 import { Responses } from './Responses';
-import { TrackingGroup } from '../models/TrackingData';
+import { TrackingGroup, TrackingGroupResponse } from '../models/TrackingData';
 
 /**
  * Creates Express Router object for tracking groups.
  */
-export function TrackingGroup(): Router {
+export function TrackingGroupRouter(): Router {
     const router: Router = Router();
     router.get('/', GetTrackingGroups);
     router.post('/start', StartTrackingGroup);
@@ -19,7 +19,6 @@ export function TrackingGroup(): Router {
 }
 
 /**
- * TODO: needs to be finished.
  * GET controller for "/tracking/group/"
  *
  * URL params:
@@ -45,7 +44,16 @@ async function GetTrackingGroups(req: Request, res: Response) {
     if (req.query.notes) query.notes = req.query.notes;
 
     try {
-        const results = await collection.find(query).toArray();
+        const dbResults = await collection.find(query).toArray();
+        const results: TrackingGroupResponse[] = [];
+        dbResults.forEach((val)=>{
+          results.push({
+            tgId: val._id,
+            startTime: val.startTime,
+            endTime: val.endTime,
+            notes: val.notes,
+          })
+        });
         return res.send(results);
     } catch (err) {
         Logger.dbErr(err.message);
@@ -155,8 +163,8 @@ async function UpdateTrackingGroups(req: Request, res: Response) {
     const update: { [k: string]: any } = {};
     query.userId = new ObjectId(res.locals.jwtPayload.id);
 
-    if (req.body.tg_id) {
-        query._id = req.body.tg_id;
+    if (req.body.tgId) {
+        query._id = req.body.tgId;
     } else {
         return res.status(400).send(Responses.MissingTgId);
     }
@@ -179,14 +187,15 @@ async function UpdateTrackingGroups(req: Request, res: Response) {
 
 /**
  * DELETE controller for "/group/"
- * Body:
- *  - tgIds[] : array of tgIds
+ * Query:
+ *  - tgId: tg id
  *
  * @param req Express Request object.
  * @param res Express Response object.
  */
 async function DeleteTrackingGroups(req: Request, res: Response) {
     const db: DbClient = res.locals.db;
+    const flApi: FlApi = res.locals.flApi;
     const collection: Collection =
         db.getCollection(Collections.TrackingGroups);
     const query: { [k: string]: any } = {};
@@ -196,19 +205,24 @@ async function DeleteTrackingGroups(req: Request, res: Response) {
         query.userId = req.query.userId :
         query.userId = res.locals.jwtPayload.id;
 
-
-    /**
-     * TODO: remove all tracking points associated to this tg.
-     */
-
-    if (req.body.tgIds) {
-        query._id = { $in: req.body.tgIds };
+    if (req.query.tgId) {
+        query._id = new ObjectId(req.query.tgId as string);
     } else {
         return res.status(400).send(Responses.MissingTgId);
     }
 
     try {
-        await collection.deleteMany(query);
+
+        console.log(query);
+
+        // Delete group from db
+        // await collection.deleteOne(query);
+        await collection.findOneAndDelete(query);
+
+        // Delete  points
+        // Done by api to decouple this controller from the tp collection
+        await flApi.deleteTpsByTgId(query._id);
+
         return res.send(Responses.Deleted);
     } catch (err) {
         Logger.dbErr(err.message);

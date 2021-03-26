@@ -10,8 +10,8 @@ import {
 } from '@jamestiberiuskirk/fl-shared';
 
 import { DbClient } from '../clients/db';
-import { TrackingPoints } from './TrackingPointsRouter';
-import { TrackingGroup } from './TrackingGoupsRouter';
+import { TrackingPointsRouter } from './TrackingPointsRouter';
+import { TrackingGroupRouter } from './TrackingGoupsRouter';
 
 /**
  * Class for instantiating HTTP server.
@@ -59,11 +59,8 @@ export class Server {
      * Initializing all the routers and routes.
      */
     initRoutes() {
-        this.app.use('/point',  TrackingPoints());
-        this.app.use('/group', TrackingGroup());
-        // this.app.get('/',(req, res)=>{
-        //     res.send('hello')
-        // })
+        this.app.use('/point', TrackingPointsRouter());
+        this.app.use('/group', TrackingGroupRouter());
     }
 
     /**

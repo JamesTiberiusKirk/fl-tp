@@ -26,3 +26,10 @@ export interface TrackingGroup {
     endTime: number | undefined;
     notes: string;
 }
+
+export interface TrackingGroupResponse {
+    tgId: string;
+    startTime: number;
+    endTime: number | undefined;
+    notes: string;
+}

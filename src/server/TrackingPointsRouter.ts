@@ -12,15 +12,17 @@ import { Collections, DbClient } from '../clients/db';
 /**
  * Creates Express Router for "/tracking/point".
  */
-export function TrackingPoints(): Router {
+export function TrackingPointsRouter(): Router {
     const router: Router = Router();
     router.get('/', GetTrackingPoints);
     router.post('/', CreateTrackingPoint);
-    // router.put('/', UpdateTrackingPoint);
+    // router.put('/', UpdateTrackingPoint); // what happened here?
     router.delete('/', DeleteTrackingPoint);
 
     router.post('/set/', CreateTpSet);
     router.put('/set/', UpdateTpSet);
+    // TODO: DELETE????
+
     return router;
 }
 
@@ -78,8 +80,13 @@ async function CreateTrackingPoint(req: Request, res: Response) {
         db.getCollection(Collections.TrackingPoints);
     const userId = res.locals.jwtPayload.id;
 
+    let tpTypeId: string;
     // call tp-types to get the type of data
-    const tpTypeId = req.body.tp_type_id;
+    if (req.body.tpTypeId){
+      tpTypeId = req.body.tpTypeId;
+    } else {
+      return res.status(400).send(Responses.MissingTpTypeId);
+    }
     try {
         const type = await flApi.getUserType(userId, tpTypeId);
         if (type.data.length === 0) return res
@@ -98,17 +105,19 @@ async function CreateTrackingPoint(req: Request, res: Response) {
                 };
                 break;
             default:
-                Logger.err('Error in the switch case');
+                // Logger.err('Error in the switch case');
+                // return res.status(400).send(Responses.MissingTpType);
+                console.log(type.data);
                 return res.sendStatus(500);
         }
 
         // set the newTp.data tp an empty either set or single value
         const newTp: TrackingPoint = {
             userId,
-            tpTypeId: req.body.tp_type_id,
-            tgId: req.body.tg_id,
+            tpTypeId: req.body.tpTypeId,
+            tgId: req.body.tgId,
             notes: req.body.notes,
-            tpNr: req.body.tp_nr,
+            tpNr: req.body.tpNr,
             data
         }
 
@@ -140,21 +149,40 @@ async function CreateTrackingPoint(req: Request, res: Response) {
  */
 async function DeleteTrackingPoint(req: Request, res: Response) {
     const db: DbClient = res.locals.db;
-    const flApi: FlApi = res.locals.flApi;
+    // const flApi: FlApi = res.locals.flApi;
     const collection: Collection =
         db.getCollection(Collections.TrackingPoints);
     const query: { [k: string]: any } = {};
-    query.userId = res.locals.jwtPayload.id;
 
-    if (req.body.tp_id) {
-        query._id = new ObjectId(req.body.tp_id);
+    // Remove all tracking points by tgId if its a request
+    //  from a microservice.
+    const roles = res.locals.jwtPayload.roles;
+    if( roles[0] === 'microservice'){
+        // get id of group
+        if(req.query.tg_id) {
+            query.tgId = req.query.tg_id;
+        }
+        // query and delete all the tps with the provided tgIds
+        try {
+            await collection.deleteMany(query);
+            return res.send(Responses.Deleted);
+        } catch (err) {
+            Logger.err(err.message);
+            return res.sendStatus(500);
+        }
+    }
+
+    query.userId = res.locals.jwtPayload.id;
+    if (req.query.tp_id) {
+        // query._id = new ObjectId(req.query.tp_id);
+        query._id = req.query.tp_id;
     } else {
         return res.status(400).send(Responses.MissingTpId);
     }
     try {
         // insert the newTp as a doc in the collection
         await collection.deleteOne(query);
-        return res.send(Responses.Added);
+        return res.send(Responses.Deleted);
     } catch (err) {
         Logger.err(err.message);
         return res.sendStatus(500);
