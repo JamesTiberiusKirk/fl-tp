@@ -12,4 +12,5 @@ export enum Responses {
     NothingToUpdate = 'Nothing to update',
     TypeNotASet = 'Type not a set',
     TpDoesNotExist = 'Tracking point doesnt exist',
+    TrackingGroupStopped = 'Tracking group stopped',
 }

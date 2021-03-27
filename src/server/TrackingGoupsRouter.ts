@@ -1,5 +1,5 @@
 import { Request, Response, Router } from 'express';
-import { Logger, Misc, FlApi } from '@jamestiberiuskirk/fl-shared';
+import { Logger, FlApi } from '@jamestiberiuskirk/fl-shared';
 import { Collections, DbClient } from '../clients/db';
 import { Collection, ObjectId } from 'mongodb';
 import { Responses } from './Responses';
@@ -102,7 +102,7 @@ async function StartTrackingGroup(req: Request, res: Response) {
 
     const newTrackingGroup: TrackingGroup = {
         userId,
-        startTime: Misc.GenTimeStamp(),
+        startTime: Date.now(),
         endTime: undefined,
         notes: req.body.notes,
     };
@@ -132,7 +132,7 @@ async function StopTrackingGroup(req: Request, res: Response) {
     query.userId = res.locals.jwtPayload.id;
 
     const update: { [k: string]: any } = {};
-    update.endTime = Misc.GenTimeStamp();
+    update.endTime = Date.now();
 
     if (req.query.tgId) {
         query._id = req.query.tgId;
@@ -141,7 +141,8 @@ async function StopTrackingGroup(req: Request, res: Response) {
     }
 
     try {
-        await collection.findOneAndUpdate(query, update);
+        await collection.updateOne(query, {$set:update});
+        return res.send(Responses.TrackingGroupStopped);
     } catch (err) {
         Logger.dbErr(err.message);
         return res.status(500).send(Responses.DatabaseErr);
