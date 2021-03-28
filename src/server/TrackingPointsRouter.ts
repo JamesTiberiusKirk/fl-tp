@@ -47,6 +47,7 @@ function GetTrackingPoints(req: Request, res: Response) {
         query.userId = res.locals.jwtPayload.id;
 
     if (req.query.tpTypeId) query.tpTypeId = req.query.tpTypeId;
+    if (req.query.tgId) query.tgId = req.query.tgId;
 
     collection.find(query)
         .toArray((err, items) => {
@@ -107,7 +108,7 @@ async function CreateTrackingPoint(req: Request, res: Response) {
             default:
                 // Logger.err('Error in the switch case');
                 // return res.status(400).send(Responses.MissingTpType);
-                console.log(type.data);
+                // console.log(type.data);
                 return res.sendStatus(500);
         }
 
@@ -161,26 +162,25 @@ async function DeleteTrackingPoint(req: Request, res: Response) {
         // get id of group
         if(req.query.tg_id) {
             query.tgId = req.query.tg_id;
-        }
-        // query and delete all the tps with the provided tgIds
-        try {
-            await collection.deleteMany(query);
-            return res.send(Responses.Deleted);
-        } catch (err) {
-            Logger.err(err.message);
-            return res.sendStatus(500);
+            // query and delete all the tps with the provided tgIds
+            try {
+                await collection.deleteMany(query);
+                return res.send(Responses.DeletedMany);
+            } catch (err) {
+                Logger.err(err.message);
+                return res.sendStatus(500);
+            }
         }
     }
 
     query.userId = res.locals.jwtPayload.id;
     if (req.query.tp_id) {
         // query._id = new ObjectId(req.query.tp_id);
-        query._id = req.query.tp_id;
+        query._id = new ObjectId(req.query.tp_id as string);
     } else {
         return res.status(400).send(Responses.MissingTpId);
     }
     try {
-        // insert the newTp as a doc in the collection
         await collection.deleteOne(query);
         return res.send(Responses.Deleted);
     } catch (err) {

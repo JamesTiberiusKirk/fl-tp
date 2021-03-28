@@ -2,6 +2,7 @@ export enum Responses {
     Added = 'Added',
     Updated = 'Updated',
     Deleted = 'Deleted',
+    DeletedMany = 'Deleted Many',
     MissingUserId = 'Missing user id',
     MissingTpType = 'Missing tracking group type',
     MissingTpTypeId = 'Missing tracking group type ID',
