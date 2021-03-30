@@ -135,13 +135,14 @@ async function StopTrackingGroup(req: Request, res: Response) {
     update.endTime = Date.now();
 
     if (req.query.tgId) {
-        query._id = req.query.tgId;
+        query._id = new ObjectId(req.query.tgId as string);
     } else {
         return res.status(400).send(Responses.MissingTgId);
     }
 
     try {
-        await collection.updateOne(query, {$set:update});
+        // return res.send(await collection.findOne(query));
+        await collection.updateOne(query,{$set:{"endTime":update.endTime}});
         return res.send(Responses.TrackingGroupStopped);
     } catch (err) {
         Logger.dbErr(err.message);
