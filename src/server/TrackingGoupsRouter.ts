@@ -40,7 +40,7 @@ async function GetTrackingGroups(req: Request, res: Response) {
         query.userId = req.query.userId :
         query.userId = res.locals.jwtPayload.id;
 
-    if (req.query.tgId) query._id = req.query.tgId;
+    if (req.query.tgId) query._id = new ObjectId(req.query.tgId as string);
     if (req.query.notes) query.notes = req.query.notes;
 
     try {
@@ -141,7 +141,6 @@ async function StopTrackingGroup(req: Request, res: Response) {
     }
 
     try {
-        // return res.send(await collection.findOne(query));
         await collection.updateOne(query,{$set:{"endTime":update.endTime}});
         return res.send(Responses.TrackingGroupStopped);
     } catch (err) {
