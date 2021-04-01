@@ -21,6 +21,7 @@ export function TrackingPointsRouter(): Router {
 
     router.post('/set/', CreateTpSet);
     router.put('/set/', UpdateTpSet);
+    router.delete('/set/', DeleteTpSet);
     // TODO: DELETE????
 
     return router;
@@ -309,3 +310,4 @@ async function UpdateTpSet(req: Request, res: Response) {
         return res.sendStatus(500);
     }
 }
+
