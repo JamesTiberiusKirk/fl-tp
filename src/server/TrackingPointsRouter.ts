@@ -64,10 +64,9 @@ function GetTrackingPoints(req: Request, res: Response) {
  * POST controller for "/"
  *
  * Body data:
- *  - tg_id: the tracking group referenced.
- *  - tp_type_id: type tracking point.
+ *  - tgId: the tracking group referenced.
+ *  - tpType_id: type tracking point.
  *  - notes: notes for the tracking point.
- *  - tp_nr: Number in te group (or workout).
  *  - data: if datatype is single-value, provide it here
  *          otherwise this should be empty.
  *
@@ -112,13 +111,18 @@ async function CreateTrackingPoint(req: Request, res: Response) {
                 return res.sendStatus(500);
         }
 
+        // Get the last tp from the tg
+        const tp = await collection.find({tgId:req.body.tgId}).sort({'tpNr':-1}).limit(1).toArray();
+        let tpNr: number;
+        !(tp === undefined || tp.length === 0) ? tpNr = tp[0].tpNr++ : tpNr = 1;
+
         // set the newTp.data tp an empty either set or single value
         const newTp: TrackingPoint = {
             userId,
             tpTypeId: req.body.tpTypeId,
             tgId: req.body.tgId,
             notes: req.body.notes,
-            tpNr: req.body.tpNr,
+            tpNr,
             data
         }
 
