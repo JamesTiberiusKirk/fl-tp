@@ -21,7 +21,7 @@ export function TrackingPointsRouter(): Router {
 
     router.post('/set/', CreateTpSet);
     router.put('/set/', UpdateTpSet);
-    router.delete('/set/', DeleteTpSet);
+    // router.delete('/set/', DeleteTpSet);
     // TODO: DELETE????
 
     return router;
@@ -211,8 +211,8 @@ async function CreateTpSet(req: Request, res: Response) {
     const query: { [k: string]: any } = {};
     query.userId = res.locals.jwtPayload.id;
 
-    if (req.body.tp_id) {
-        query._id = new ObjectId(req.body.tp_id);
+    if (req.query.tpId) {
+        query._id = new ObjectId(req.query.tpId as string);
     } else {
         return res.status(400).send(Responses.MissingTpId);
     }
@@ -229,7 +229,7 @@ async function CreateTpSet(req: Request, res: Response) {
             return res.status(400).send(Responses.TypeNotASet);
 
         // create a new set
-        const tpSet: TpSet = req.body.tp_set as TpSet;
+        const tpSet: TpSet = req.body as TpSet;
         tpSet.setNr = (tp.data as TpSet[]).length + 1;
         const update = {
             $push: {

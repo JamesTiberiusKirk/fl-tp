@@ -162,10 +162,10 @@ async function UpdateTrackingGroups(req: Request, res: Response) {
         db.getCollection(Collections.TrackingGroups);
     const query: { [k: string]: any } = {};
     const update: { [k: string]: any } = {};
-    query.userId = new ObjectId(res.locals.jwtPayload.id);
+    query.userId = res.locals.jwtPayload.id;
 
     if (req.body.tgId) {
-        query._id = req.body.tgId;
+        query._id = new ObjectId(req.body.tgId as string);
     } else {
         return res.status(400).send(Responses.MissingTgId);
     }
@@ -178,6 +178,7 @@ async function UpdateTrackingGroups(req: Request, res: Response) {
         .send(Responses.NothingToUpdate)
 
     try {
+        // const dbRes = await collection.findOneAndUpdate(query, {$set:update});
         await collection.findOneAndUpdate(query, {$set:update});
         return res.send(Responses.Updated);
     } catch (err) {
