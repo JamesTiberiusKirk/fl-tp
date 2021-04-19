@@ -61,9 +61,6 @@ export class Server {
     initRoutes() {
         this.app.use('/point', TrackingPointsRouter());
         this.app.use('/group', TrackingGroupRouter());
-        this.app.get('/hello', (req, res) => {
-            res.send('hello world');
-        });
     }
 
     /**
